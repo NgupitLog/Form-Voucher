@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Voucher</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;padding:20px;margin:0}
+h2{color:#0b4ea2;margin-top:0}
+h3{color:#0b4ea2;margin:0 0 10px 0}
+
+.header,.biaya-block{
+  background:#fff;
+  padding:15px;
+  border-radius:6px;
+  margin-bottom:20px;
+  border-left:5px solid #ff8c00;
+  position:relative;
+}
+
+label{font-size:12px;font-weight:bold;display:block;margin-bottom:2px;white-space:nowrap}
+input,select{width:100%;padding:6px;margin-bottom:6px;font-size:13px;box-sizing:border-box;border:1px solid #ccc;border-radius:3px}
+input:focus,select:focus{outline:2px solid #0b4ea2;border-color:#0b4ea2}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.col{position:relative}
+
+.col.blawb{flex:1.6;min-width:150px}
+.col.aju{flex:1;min-width:110px}
+.col.tipe{flex:.8;min-width:100px}
+.col.bank{flex:1;min-width:110px}
+.col.norek{flex:1;min-width:110px}
+.col.akun{flex:1.4;min-width:160px}
+.col.pemasok{flex:1.6;min-width:180px}
+.col.qty{flex:.6;min-width:80px}
+.col.ket{flex:1.8;min-width:180px}
+.col.nominal{flex:1;min-width:120px}
+.col.atasnama{flex:1;min-width:130px}
+.col.pic{flex:1;min-width:180px}
+.col.sumberdana{flex:1.6;min-width:220px}
+
+.combo-list{
+  position:absolute;
+  z-index:20;
+  top:100%;
+  left:0;
+  right:0;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:3px;
+  max-height:200px;
+  overflow-y:auto;
+  display:none;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+}
+.combo-list div{padding:6px 8px;cursor:pointer;font-size:13px}
+.combo-list div:hover{background:#eef4ff}
+
+.btn{
+  background:#ff8c00;
+  color:#fff;
+  border:none;
+  padding:8px 14px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:13px;
+}
+.btn-blue{background:#0b4ea2}
+.btn-danger{background:#e74c3c;padding:4px 10px;font-size:12px;position:absolute;top:15px;right:15px}
+
+.section-label{font-weight:bold;color:#0b4ea2;margin-bottom:10px;font-size:14px;letter-spacing:.5px}
+
+@media(max-width:768px){
+  .row{flex-direction:column}
+  .col{min-width:100%!important}
+  .btn{width:100%}
+}
+</style>
+</head>
+
+<body>
+
+<h2>Form Voucher</h2>
+
+<div class="header">
+  <div class="row">
+    <div class="col pic">
+      <label>PIC</label>
+      <select id="pic">
+        <option value="">-- pilih --</option>
+      </select>
+    </div>
+
+    <div class="col tipe">
+      <label>Sumber Dana</label>
+      <select id="sumberDana">
+        <option value="">-- pilih --</option>
+        <option value="PBL">PBL</option>
+        <option value="NAL">NAL</option>
+      </select>
+    </div>
+
+    <div class="col sumberdana companyNameCol">
+      <label>Company Name</label>
+    </div>
+  </div>
+</div>
+
+<div id="biayaContainer"></div>
+
+<button class="btn btn-blue" id="btnAddBiaya">+ Tambah Biaya</button>
+<br><br>
+<button class="btn" id="btnSubmit">SUBMIT</button>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyK9k0weSBCpAPxXV53mZ3yFD0FGd2fw4G7me4UYH6dEks6BrR4-5S2XG3YKr-v6pQF/exec";
+
+/* ================= MASTER DATA (LAMA - fallback jika fetch ke Sheet gagal) ================= */
+const PIC_LIST_FALLBACK = ["Farah", "Beta", "Dian", "Imri", "Tias", "Febi", "Avril", "Denada", "Fadly", "Kiki", "Logistik Team", "Aulia", "Others"];
+const SUMBER_DANA_LIST_FALLBACK = ["PT. MATAHARI ARMADA SENTOSA", "PT. SINOTRANS OVERSEAS INDONESIA", "PT. SUPER SUPPLY CHAIN", "PT. TRAKTOR PERKASA UTAMA", "PT. MULTI TRUCK NUSANTARA", "PT. MEDIA TAMA ELEKTRONIK", "PT. MURNI INNO KESEHATAN", "PT. HALMAHERA PERSADA LYGEND", "PT. OBI SINAR TIMUR", "PT. KALBE FARMA", "PT. YTC LOGISTIIK INONESIA", "PT. HEXPHARM JAYA LABORATORIES", "PT. KAYONG POWER NUSANTARA", "PT. SAE ASIA LOGISTIK", "PT. INTERPORT MULTI NIAGA", "PT. TIANSHI INDONESIA LOGISTIK", "PT. NUGROHO PRATAMA CHEMICA ASIA", "PT. BUANA MASA SUPLINDO", "PT. ORMAT GEOTHERMAL INDONESIA", "PT. JASA ASIA JAYA", "PT. GALENIUM PHARMASIA LABORATORIES", "PT. MOLADIN FINNACE INDONESIA", "PT. TUJUAN MULIA MAKMUR", "PT. INDONESIA PRIMA EQUIPMENT", "PT. NUSAN JAYA TEKINDO", "PT. ICHEETAH INDONESIA LOGISTIK", "PT. ANUGERAH MANDIRI INTERNASIONAL TRANS", "PT. KARSEL EXPRESS INTERNASIONAL", "PT. PANCA KUSUMA LOGISTIK", "PT. WELGROW INDOPERSADA", "PT. BHUM INDONESIA LOGISTIK", "PT. PRIMA SARANA MAKMUR", "PT. FOSUN TRADING INDONESIA", "PT. ARDHYA TRIKARSA MANDIRI LOGSITIK", "CV WIDI NUGRAHA", "PT. MULTI SCREEN INDONESIA", "PT. GLOBAL ARTHA PRATAMA", "PT. WAHANA MAKMUR ENGINEERING", "PT. TANGGUH INTI GLOBAL", "PT. SUMBER AIR DEWA", "PT. HANJIN GLOBAL LOGISTIK INDONESIA", "PT. INDUSTRIAL PRODUK JAVA", "PRJ", "ANDALAN SOLUSI INNOVASI", "PT. AMERICAN STANDARD INDONESIA", "PT. LIXIL TRADING INDONESIA", "PT. ADIMITRA PRIMA LESTARI", "PT. INSAN JULANG JAYA", "PT. ELECTRA MOBILITAS INDONESIA", "PT. CITRAWEB SOLUSI TEKNOLOGI", "PT. TERANG DUNIA INTERNUSA", "PT. WAHANA INTI UTAMA", "PT. BINTANG TIMUR", "PT. SEPEDA BERSAMA INDONESIA", "PT. SELALU SUKSES PRIMA", "PT. LUAS BIRUS UTAMA", "PT. ARISTON GROUP INDONESIA", "PT. DENTO SINAR JAYA GROUP", "PT. LARA THALIA ABADI", "PT. ASIA POWER TECHNOLOGY", "PT. GLOBAL BEST SOURCE", "PT. IDEA INOVASI DIGITAL", "PT. VINFAST AUTOMOBILE INDONESIA", "PT. HUAKAN INTERNATIONAL INDONESIA", "PT. INTAN SEJATI KLATEN", "KHAI MINH GROUPS COMPANY LIMITED", "THAIHA INVESTMENT & DELIVERY JSC", "REAL LOGISTICS CO., LTD", "BACH VIET GROUP", "PT. CONTAINER SUKSES LOGISTIK", "PT. MHES INTERHUB INDONESIA", "PT. ASURANSI CENTRAL ASIA", "PT. NIRWANA ALAM SEJAHTERA", "PT. CJ LOGISTICS INDONESIA", "PT. INTERASIA LOGISTIK SERIVCE", "PT. SINAR CIPTA WIJAYA", "PT. OBI NICKEL COBALT", "PT. MEGAH AGUNG JAYA SUKSES", "PT KUDA HITAM TECH", "PT. RUBY PRATAMA LOGISTIK", "PT. RISMAKO MANDIRI BERSAMA", "PT. PANCA SAMUDRA BUMI", "PT. CITA MINERAL INVESTINDO TBK", "PT. GANE TAMBANG SENTOSA", "PT. TOP SURYA PACKINDO"]; // dari Company Name.txt
+const PEMASOK_LIST_FALLBACK = [{"kode": "A-004", "nama": "Aldo"}, {"kode": "a-012", "nama": "athena"}, {"kode": "a-013", "nama": "andala"}, {"kode": "A-014", "nama": "Amirudin"}, {"kode": "AA-003", "nama": "Annas Akis"}, {"kode": "ABC", "nama": "PT. Antero Bahana Cemerlang"}, {"kode": "AC-001", "nama": "ADE CHANDRA"}, {"kode": "AF-001", "nama": "Agus Firmansyah"}, {"kode": "AFI-001", "nama": "ARTHAMAS FORKLIFT INDONESIA"}, {"kode": "AGLSPL-001", "nama": "AWOT GLOBAL LOGISTICS SINGAPORE PTE LTD"}, {"kode": "AH-001", "nama": "Astra Honda"}, {"kode": "AJMP-001", "nama": "Aron Jose Manuel Pak"}, {"kode": "AK-001", "nama": "Agung Kurniawan"}, {"kode": "AKu-001", "nama": "Atik Kotul ulya"}, {"kode": "ALI-001", "nama": "AJL Logistik Indonesia"}, {"kode": "AMF-001", "nama": "Adira Mandiri Finance"}, {"kode": "AMINTRANS", "nama": "PT. Anugerah Mandiri Internasional Trans"}, {"kode": "AMN-001", "nama": "Arya Mabruri N"}, {"kode": "APM-001", "nama": "Aldo Putera Mandiri"}, {"kode": "AR-001", "nama": "Aditya Rizky"}, {"kode": "AR-002", "nama": "Arif Rachman"}, {"kode": "AR-003", "nama": "Abdul Rachman"}, {"kode": "ARN-001", "nama": "Ari Rahdianto Noor"}, {"kode": "AS-001", "nama": "Arcik Sabarani"}, {"kode": "AS-002", "nama": "Andy Setiawan"}, {"kode": "AS-003", "nama": "ANDRI SEPTIANA"}, {"kode": "AS-004", "nama": "ARIP SAPRUDIN"}, {"kode": "AS-005", "nama": "Amami Sutiyanto"}, {"kode": "AS-006", "nama": "Agus Setiawan"}, {"kode": "ASI-001", "nama": "Andalan Solusi Inovasi"}, {"kode": "ASM-001", "nama": "PT. Athena Satria Mandiri"}, {"kode": "AT-001", "nama": "Achmad Taufik"}, {"kode": "ATML", "nama": "PT. Ardhya Trikarsa Mandiri Logistik"}, {"kode": "Axl Pratama", "nama": "Axl Pratama"}, {"kode": "b-002", "nama": "benline"}, {"kode": "B-003", "nama": "PT Bahtera Energi Samudra Tuah"}, {"kode": "B-004", "nama": "Billing"}, {"kode": "B-005", "nama": "Budiyanto"}, {"kode": "BD-001", "nama": "Bu Damay"}, {"kode": "BE-001", "nama": "Bu Eka"}, {"kode": "BEN-001", "nama": "Bahari Eka Nusantara"}, {"kode": "BF-001", "nama": "BNI Finance"}, {"kode": "BF-002", "nama": "BFI FINANCE"}, {"kode": "BG-001", "nama": "Bu Galuh"}, {"kode": "BGT", "nama": "PT Bina Global Transport"}, {"kode": "BH-001", "nama": "BUANA HARUM"}, {"kode": "BINEX", "nama": "PT BINEX LOGISTIC"}, {"kode": "BJ-001", "nama": "Bank Jatim"}, {"kode": "BK-001", "nama": "BPJS Kesehatan"}, {"kode": "BK-002", "nama": "BPJS Ketenagakerjaan"}, {"kode": "BKI-001", "nama": "Bu Kun Ihda"}, {"kode": "BKJ-001", "nama": "BANDAR KRIDA JASINDO"}, {"kode": "BL-001", "nama": "Betarina Lasima"}, {"kode": "BL-002", "nama": "Bu Listia"}, {"kode": "BL-003", "nama": "BS LINE"}, {"kode": "BLBJ-001", "nama": "Balai Lelang Bumi Jaya"}, {"kode": "BLI-001", "nama": "BSA Logistics Indonesia"}, {"kode": "BLI-002", "nama": "BINTANG LOGISTIK INDONUSA"}, {"kode": "BNB-001", "nama": "Bu Nensi BAI"}, {"kode": "BPS-001", "nama": "Bu Pujianingsih Samarinda"}, {"kode": "BS-001", "nama": "Beni Syarifudin"}, {"kode": "BS-002", "nama": "Bank SulutGo"}, {"kode": "BS-003", "nama": "Bank Saqu"}, {"kode": "BVGCL-00001", "nama": "BACH VIET GLOBAL CO., LTD"}, {"kode": "C-003", "nama": "CITRAWEB"}, {"kode": "C-004", "nama": "CLC"}, {"kode": "c-006", "nama": "cnc"}, {"kode": "CB-001", "nama": "Chemviro Buana"}, {"kode": "cc-002", "nama": "cma cgm"}, {"kode": "CC5-001", "nama": "CV. CV 5000"}, {"kode": "CCAS", "nama": "PT CMA CGM & ANL Securities"}, {"kode": "CCASPL-001", "nama": "CMA CGM ASIA SHIPPING PTE. LTD"}, {"kode": "CCB", "nama": "PT Cardindo Citra Buana"}, {"kode": "CCIS", "nama": "CMA CGM Inland Service"}, {"kode": "CDCF-001", "nama": "CV. Dwi Cipta Formula"}, {"kode": "CDMM-001", "nama": "CV. Daun Mas Mulia"}, {"kode": "CDP-001", "nama": "Cikarang Dry Port"}, {"kode": "CFI-001", "nama": "Clipan Finance Indonesia"}, {"kode": "CI-001", "nama": "CCIS Indonesia"}, {"kode": "CIP-001", "nama": "CRANE INDO PERDANA"}, {"kode": "CJAJ-00001", "nama": "CV. Jasa Asia Jaya"}, {"kode": "CKAS-001", "nama": "CV. Kay Alor Sejahtera"}, {"kode": "CLT-001", "nama": "CMU LOGISTICS TRANSPORTAION"}, {"kode": "CMACS-001", "nama": "CONTAINER M A-CMA CGM SA"}, {"kode": "CMJ-001", "nama": "CLC Meratus Jakarta"}, {"kode": "CMM-001", "nama": "CLC Meratus Margomulyo"}, {"kode": "CNT-001", "nama": "Citra Niaga Transportasi"}, {"kode": "CPC-001", "nama": "Cipta Prima Container"}, {"kode": "CPT", "nama": "CV. Perkasa Tehnik"}, {"kode": "CPUI-001", "nama": "CGK3 Pick Up Import"}, {"kode": "CRKN-001", "nama": "CV. RO Kargo Nusantara"}, {"kode": "CSA-001", "nama": "COSCO SHIPPING AGENCY"}, {"kode": "CSBI-001", "nama": "CV. Star Brain International"}, {"kode": "CSBP-001", "nama": "CV. Satya Bintang Perkasa"}, {"kode": "CSLI", "nama": "PT. Cosco Shipping Lines Indonesia"}, {"kode": "CTL-001", "nama": "CSC Transport Limited"}, {"kode": "CTPL-00001", "nama": "CV Tanjung Prima Lestari"}, {"kode": "D-002", "nama": "Damayanti"}, {"kode": "d-004", "nama": "delta"}, {"kode": "DASRUL", "nama": "Pak Dasrul"}, {"kode": "DCSI-001", "nama": "Depot Container Service Indonesia"}, {"kode": "DE-001", "nama": "DJV Express"}, {"kode": "DET-001", "nama": "Dunia Express Transindo"}, {"kode": "DHI-001", "nama": "DEPOT HUB INDONESIA"}, {"kode": "DHL", "nama": "PT DHL Global Forwarding"}, {"kode": "DJBDC-001", "nama": "Direktorat Jendral Bea Dan Cukai"}, {"kode": "DKS-001", "nama": "DDEPOT KONTAINER SERVIS INDONESIA"}, {"kode": "DLS-001", "nama": "Ditran Logistik Servis"}, {"kode": "DML-001", "nama": "DIYAH MITRA LOGISTIK"}, {"kode": "DMP-001", "nama": "Depo Meratus Pasifik"}, {"kode": "DMP-002", "nama": "Depo Mutiara Permata"}, {"kode": "DMS", "nama": "PT. Daisy Mutiara Samudra"}, {"kode": "DPATI-001", "nama": "DOKU PT AMER TECHNOLOGY INDONESIA"}, {"kode": "DSA", "nama": "PT Daniel Samudra Abadi"}, {"kode": "EAP-001", "nama": "Eko Adi Prayitno"}, {"kode": "EDI1", "nama": "PT. Electra Distribusi"}, {"kode": "ESAI-001", "nama": "EVERGREEN SHIPPING AGENCY INDONESIA"}, {"kode": "ESL-001", "nama": "Evergreen Shipping Line"}, {"kode": "f-001", "nama": "fadhil"}, {"kode": "F-001", "nama": "Freddy"}, {"kode": "f-002", "nama": "fadh"}, {"kode": "F-002", "nama": "INI BUKAN FADIL"}, {"kode": "F-003", "nama": "Ferizy"}, {"kode": "FA-001", "nama": "Febi Adelina"}, {"kode": "FA-002", "nama": "Fadly Auliano"}, {"kode": "FBIT-001", "nama": "Fajar Buana Internusa Trans"}, {"kode": "FM-001", "nama": "Febri Maulana"}, {"kode": "FR-001", "nama": "Fahrul Rizal"}, {"kode": "FS-001", "nama": "Fadjar Sihiddiq"}, {"kode": "GPA-001", "nama": "revisi nama"}, {"kode": "GS-001", "nama": "Gunawan Sutiadji"}, {"kode": "GSL-001", "nama": "Gold Star Line"}, {"kode": "GT-001", "nama": "GLOBAL TERIMINAL"}, {"kode": "GTM-001", "nama": "Global Terminal Marunda"}, {"kode": "HAL-001", "nama": "Hijau Abadi Logistik"}, {"kode": "HE", "nama": "Herona Express"}, {"kode": "HHL-001", "nama": "Halal Hub Logistics"}, {"kode": "HL-001", "nama": "Hino Leasing"}, {"kode": "HSP", "nama": "PT Hanoman Sakti Pratama"}, {"kode": "I(-001", "nama": "IMRIYAH (SLAMET)"}, {"kode": "I(Ps)-001", "nama": "Imriyah ( Pa selamet )"}, {"kode": "I(T-001", "nama": "IPA (Vendor Truk)"}, {"kode": "I(T-002", "nama": "IKL (Vendor Truck)"}, {"kode": "I-004", "nama": "Ibnu"}, {"kode": "I-008", "nama": "Imriyah"}, {"kode": "I-009", "nama": "INDOPR"}, {"kode": "IA&M-001", "nama": "Indonesia Air & Marine"}, {"kode": "IBH-001", "nama": "ILYAS BAKHRI HAFIZ"}, {"kode": "IGL", "nama": "PT Intertrans Global Logistik"}, {"kode": "IHA-001", "nama": "Ivan Hermi Ardiansyah"}, {"kode": "ILS1", "nama": "PT. Interasia Logistik Service"}, {"kode": "IP-001", "nama": "IPC PAYMENT"}, {"kode": "IS-001", "nama": "ICHSAN SOLIHIN"}, {"kode": "J-002", "nama": "Juventius"}, {"kode": "J-003", "nama": "Pak Johan"}, {"kode": "JA-002", "nama": "JAS ANGKASA"}, {"kode": "JA-003", "nama": "JASA ANGAKASA"}, {"kode": "JA-004", "nama": "JASA ANGKASA"}, {"kode": "JAM", "nama": "PT. Jaya Armada Sejati Maritim"}, {"kode": "JARIO", "nama": "PT. JARIO"}, {"kode": "JAS", "nama": "PT Jasa Angkasa Semesta"}, {"kode": "JICT", "nama": "Jakarta International Container Terminal"}, {"kode": "JL-001", "nama": "Jimmy Lee"}, {"kode": "k-003", "nama": "kenn"}, {"kode": "k-004", "nama": "kintey"}, {"kode": "K-005", "nama": "KENNY"}, {"kode": "KJ-001", "nama": "KHAELITA JEHAN"}, {"kode": "KL-001", "nama": "KING LOG"}, {"kode": "KnC-001", "nama": "KLIK n CLEAN"}, {"kode": "KS-SI-001", "nama": "KSO SUCOFINDO - SURVEYOR INDONESIA"}, {"kode": "KWE-001", "nama": "Kintetsu World Express"}, {"kode": "L-007", "nama": "LISTIA"}, {"kode": "LB-001", "nama": "Luita Biljolius"}, {"kode": "LBN-001", "nama": "LINTAS BUMI NUSANTARA"}, {"kode": "LLI-001", "nama": "Legend Logistik Indonesia"}, {"kode": "LP-001", "nama": "LINK PAS"}, {"kode": "M-003", "nama": "Masum"}, {"kode": "M-005", "nama": "Bu Mirza"}, {"kode": "M-006", "nama": "MAWAR"}, {"kode": "M-008", "nama": "Murwanto"}, {"kode": "M-009", "nama": "Mukhti"}, {"kode": "m-010", "nama": "masaji"}, {"kode": "M-010", "nama": "MBS"}, {"kode": "Mal-001", "nama": "Mustika alam letsri"}, {"kode": "MAS-001", "nama": "Moch Adam Syah"}, {"kode": "MDL-001", "nama": "Maju Depo Logistik"}, {"kode": "MEP-001", "nama": "Maxima Express Pratama"}, {"kode": "MG-001", "nama": "Meratus Group"}, {"kode": "MGRA-001", "nama": "Muhammad Gilang Ramadhan Azhari"}, {"kode": "MH-001", "nama": "Mariani Huang"}, {"kode": "MI-001", "nama": "Macoline Indonesia"}, {"kode": "MI-002", "nama": "Maybank Indonesia"}, {"kode": "MINPL-00001", "nama": "Medicore International Network Pte Ltd"}, {"kode": "MKU-001", "nama": "Muhammad Khoirul Umam"}, {"kode": "ML-001", "nama": "Maersk Line"}, {"kode": "MLT-001", "nama": "Mitra Lintas Talenta"}, {"kode": "Mml-001", "nama": "Muhammad masum luthfie"}, {"kode": "MN-001", "nama": "MARGARETHA NAOMI"}, {"kode": "MP-001", "nama": "Muchtian Purwoko"}, {"kode": "MPK", "nama": "PT. Mandiri Putrayudha Kontena"}, {"kode": "MS-001", "nama": "M. Sofyan"}, {"kode": "MS-002", "nama": "Muncul Surya"}, {"kode": "MSI-001", "nama": "Milenia Solusi Internusa"}, {"kode": "MSR-001", "nama": "MFADHILLAH SHERYO RI"}, {"kode": "MTF-001", "nama": "Mandiri Tunas Finance"}, {"kode": "MTO-", "nama": "Meratus Tambak Osowilangon"}, {"kode": "MZ-001", "nama": "Megawati Zahri"}, {"kode": "N(DMV-001", "nama": "NELLY (PBM DAUN MAS VENTURA)"}, {"kode": "N-003", "nama": "NADILA"}, {"kode": "n-012", "nama": "ngupit"}, {"kode": "NEI-001", "nama": "Nippon Express Indonesia"}, {"kode": "Ngupit", "nama": "PT. Ngupit Asasta Logistik"}, {"kode": "NH-001", "nama": "NUR HIDAYAH"}, {"kode": "NPCT 1", "nama": "New Priok Container Terminal One"}, {"kode": "NYKK-001", "nama": "Nippon Yusen Kabushiki Kaisha"}, {"kode": "ONEP-001", "nama": "Ocean Network Express Pte.Ltd"}, {"kode": "OOCL-001", "nama": "Orient Overseas Container Line"}, {"kode": "P-001", "nama": "Pegadaian"}, {"kode": "P-002", "nama": "PNBP"}, {"kode": "P-004", "nama": "PARANI"}, {"kode": "p-004", "nama": "prasetya"}, {"kode": "P-005", "nama": "Puninar"}, {"kode": "P-007", "nama": "Pelindo"}, {"kode": "P3PC-001", "nama": "PT 3S PRIME CONTINENTAL"}, {"kode": "PA-00001", "nama": "PT. Aqindotama"}, {"kode": "PA-002", "nama": "Pak Aming"}, {"kode": "PA-003", "nama": "PAK ABU"}, {"kode": "PABS-001", "nama": "PT. Athilla Bahtera Sejaterah"}, {"kode": "PACA-001", "nama": "PT.  Asuransi Central Asia"}, {"kode": "PACSA-001", "nama": "PT. Angkasa Cahya Selaras Abadi"}, {"kode": "PADC-001", "nama": "PT Arjaka Dunia Cargo"}, {"kode": "PAEI-001", "nama": "PT. Avatar Express Indonesia"}, {"kode": "PAFG-001", "nama": "PT. Amindo Fajar Gemilang"}, {"kode": "PAGI-00001", "nama": "PT. Ariston Group Indonesia"}, {"kode": "PAGL-001", "nama": "PT. AIRROWES GLOBAL LOGISTIK"}, {"kode": "PAGN-001", "nama": "PT. Amass Global Network"}, {"kode": "PAJL-001", "nama": "PT Agung Jaya Logistik"}, {"kode": "PAJL-002", "nama": "PT. AGUNG JASA LOGISTIK"}, {"kode": "Pak Abu", "nama": "Abu Dzar Al Ghifari"}, {"kode": "Pak Iyang", "nama": "Pak Iyang"}, {"kode": "Pak Slamet", "nama": "Pak Slamet"}, {"kode": "Pak Yanto", "nama": "Pak Yanto"}, {"kode": "PAKA-00001", "nama": "PT. Aneka Karbon Aktif"}, {"kode": "PALHP-001", "nama": "PT. Asti Lintas Hutama Persada"}, {"kode": "PALS-001", "nama": "PT ARMA LOGISTICS SERVICE"}, {"kode": "PAMC-001", "nama": "PT ACE MULTITRANS CARGO"}, {"kode": "PAMI-001", "nama": "PT. ASURANSI MSIG INDONESIA"}, {"kode": "PAML-00001", "nama": "PT. Anugerah Multi Logistik"}, {"kode": "PAMT-001", "nama": "PT. Anugerah Makmur Transporindo"}, {"kode": "PAPS-001", "nama": "PT. Anugrah Permata Samudra"}, {"kode": "PAR-001", "nama": "PT. Agung Raya"}, {"kode": "PAS-001", "nama": "Pak Arip Subang"}, {"kode": "PASR-001", "nama": "PT. Armada Samudera Raya"}, {"kode": "PATI-00001", "nama": "PT. Ariston Thermo Indonesia"}, {"kode": "PATI-00002", "nama": "PT. Amer Technology Indonesia"}, {"kode": "PATI-003", "nama": "PT. Aurora Teknologi Indonesia"}, {"kode": "PATS-001", "nama": "PT. Andika Trans Samudera"}, {"kode": "PATT-001", "nama": "PT. Anugerah Tangkas Transportindo"}, {"kode": "PAWK-001", "nama": "PT. Anindya Wiraputra Konsult"}, {"kode": "PB-001", "nama": "Pak Bambang"}, {"kode": "PB-002", "nama": "Pak Bahrun"}, {"kode": "PBAT-001", "nama": "PT Bumi Arta Trans"}, {"kode": "PBBI-002", "nama": "PT. BANDAR BERLAYAR INTERNASIONAL"}, {"kode": "PBBL-001", "nama": "PT. BLESSINDO BERJAYA LOGISTIC"}, {"kode": "PBC-001", "nama": "PT. Bajika Cargo"}, {"kode": "PBCRI-001", "nama": "PT. Bahari Cahaya Raya"}, {"kode": "PBDL-001", "nama": "PT Bangun Desa Logistindo"}, {"kode": "PBHK-001", "nama": "PT. BUANA HARUM KHARISMA"}, {"kode": "PBKI-001", "nama": "PT. Biro Klasifikasi Indonesia"}, {"kode": "PBL-001", "nama": "Paksi Bayanaka Logistik"}, {"kode": "PBLC-001", "nama": "PT. Biru Laut Cakrawala"}, {"kode": "PBLGL-001", "nama": "PT. Best Link Global Logistics"}, {"kode": "PBLI-001", "nama": "PT. Bintang Logistik Indonesia"}, {"kode": "PBLI-002", "nama": "PT. BOLLORE LOGISTICS INDONESIA"}, {"kode": "PBLI-004", "nama": "PT Bee Logistics Indonesia"}, {"kode": "PBML-001", "nama": "PT. Berdiri Matahari Logistik"}, {"kode": "PBNS-001", "nama": "PT. Bintang Nusantara Service"}, {"kode": "PBP-001", "nama": "PT. Bima Perkasaindo"}, {"kode": "PBPL-001", "nama": "PT. Bunga Plum Logistik"}, {"kode": "PBPP-001", "nama": "PT. Bangun Putra Pesaka"}, {"kode": "PBS-001", "nama": "PT Birotika Semesta"}, {"kode": "PBSA-001", "nama": "PT. Bintang Samudera Angkasa"}, {"kode": "PC-001", "nama": "Pak Ceha"}, {"kode": "PCAOI-001", "nama": "PT. Ceva Air Ocean Indonesia"}, {"kode": "PCAS-001", "nama": "PT. Chandra Adi Sentosa"}, {"kode": "PCBM-001", "nama": "PT. Cahaya Berkah Maritim"}, {"kode": "PCDPL-001", "nama": "PT. CITRA DERMAGA PERKASA LOGISTIK"}, {"kode": "PCFI-001", "nama": "PT CEVA FREIGHT INDONESIA"}, {"kode": "PCIC-001", "nama": "PT. Chaya Interfreight Cargo"}, {"kode": "PCIP-001", "nama": "PT. Crane Indo Perdana"}, {"kode": "PCKL-00001", "nama": "PT. Catur Kusumayuda Logistik"}, {"kode": "PCLI-", "nama": "PT. CJ LOGISTICS INDONESIA"}, {"kode": "PCLI-002", "nama": "PT. Caldera Lintas Indonesia"}, {"kode": "PCLJ-001", "nama": "PT. CIL LOGISTINDO JAYA"}, {"kode": "PCMIT-00001", "nama": "PT. Cita Mineral Investindo Tbk"}, {"kode": "PCMS-001", "nama": "PT. CASMITA MANDIRI SEJAHTERA"}, {"kode": "PCMU-001", "nama": "PT. Cahaya Mas Utama"}, {"kode": "PCP-001", "nama": "PT. Cahaya Pundimas"}, {"kode": "PCPC-001", "nama": "PT. Citra Prima Container"}, {"kode": "PCPC-002", "nama": "PT. Citra Prima Container"}, {"kode": "PCPEI-00001", "nama": "PT. Chunhua Power Engineering Indonesia"}, {"kode": "PCPG-001", "nama": "PT Cakrawala Persada Globalindo"}, {"kode": "PCPL-001", "nama": "PT. Cakrawala Persada Logistic"}, {"kode": "PCRM-00001", "nama": "PT. Cipta Rasa Multindo"}, {"kode": "PCSL-001", "nama": "PT Cipta Sejahtera Logistik"}, {"kode": "PCSL-002", "nama": "PT. CONTAINER SUKSES LOGISTIK"}, {"kode": "PCSM-001", "nama": "PT. CAHAYA SAMUDERA MULIA"}, {"kode": "PD-001", "nama": "Pak Dwi"}, {"kode": "PDAS-001", "nama": "PT. Damar Alam Selaras"}, {"kode": "PDAS-002", "nama": "PT. Damar Angkasa Sinergi"}, {"kode": "PDAS-003", "nama": "PT. Damar Agung Samudra"}, {"kode": "PDCL-001", "nama": "PT Dynamic Container Lines"}, {"kode": "PDE-001", "nama": "PT Dexter Eurekatama"}, {"kode": "PDE-002", "nama": "PT. DEJAVU EXPRESS"}, {"kode": "PDGFI-001", "nama": "PT. DHL GLOBAL FORWARDING INDONESIA"}, {"kode": "PDI-001", "nama": "PT. Dachser Indonesia"}, {"kode": "PDIJ-00001", "nama": "PT. Dairy Indonesia Jaya"}, {"kode": "PDIMC-001", "nama": "PT. Dwi Insan Mandiri Cargo"}, {"kode": "PDKB-001", "nama": "PT. DHARMA KARTIKA BHAKTI"}, {"kode": "PDKD-001", "nama": "PT. Delta Kontainer Depot"}, {"kode": "PDKMJ-001", "nama": "PT. Dwipa Kharisma Mitra Jakarta"}, {"kode": "PDKMS-001", "nama": "PT. Dwipa Kharisma Mitra Surabaya"}, {"kode": "PDKMS-002", "nama": "PT. DWIPA KHARISMA MITRA SEMARANG"}, {"kode": "PDLA-001", "nama": "PT. DEKRA LARAS ABADI"}, {"kode": "PDLI-001", "nama": "PT. Deete Logistics Indonesia"}, {"kode": "PDLN-001", "nama": "PT. DEPO LAUTAN NUSANTARA"}, {"kode": "PDMC-001", "nama": "PT. DAYAGUNA MARITIM CARGOTAMA"}, {"kode": "PDMI-001", "nama": "PT. Dayaguna Motor Indonesia"}, {"kode": "PDMT-001", "nama": "PT. Dindadiva Mandiri Trans"}, {"kode": "PDMV-001", "nama": "PT. DAUN MAS VENTURA"}, {"kode": "PDSL-001", "nama": "PT. DINAR SEGARA LOGISTIK"}, {"kode": "PDT-001", "nama": "PT. Diraja Trailindo"}, {"kode": "PDTI-001", "nama": "PT. DSV Transport Indonesia"}, {"kode": "PDTS-001", "nama": "PT. DIGITAL TRADING SOLUSINDO"}, {"kode": "PDW-001", "nama": "Pak Dedy Waru"}, {"kode": "PDWI-001", "nama": "PT. DEXTRANS WORLDWIDE INDONESIA"}, {"kode": "PE-001", "nama": "Pak Erwin"}, {"kode": "PEA-001", "nama": "Pak Eko Amstad"}, {"kode": "PEGI-001", "nama": "PT. Efl Global Indoneisa"}, {"kode": "PEH-001", "nama": "PT. Eraresik Hunian"}, {"kode": "PEI-001", "nama": "PT ECUWORLDWINE INDONESIA"}, {"kode": "PEJMP-001", "nama": "PT. EMKL JAKARTA MAJU PUSAKA"}, {"kode": "PELI-001", "nama": "PT. ECL Logistik Indonesia"}, {"kode": "PELI-002", "nama": "PT. Eurotrans Logistik Indonesia"}, {"kode": "Pelindo", "nama": "PELINDO III"}, {"kode": "PEMI-001", "nama": "PT. Electra Mobilitas Indonesia"}, {"kode": "PEOL-001", "nama": "PT. EASTERN ORIENTAL LOGISTICS"}, {"kode": "PEOL-002", "nama": "PT. Eastindo Oriental Logistik"}, {"kode": "PESA-001", "nama": "PT. EMKL Sudijaya Agung"}, {"kode": "PEWI-001", "nama": "PT ECU WORLDWIDE INDONESIA"}, {"kode": "PF-001", "nama": "Pak Farid"}, {"kode": "PFCL-001", "nama": "PT. Freight Cargo Logistics"}, {"kode": "PFEI-001", "nama": "PT Fedex Express International"}, {"kode": "PFEJ-00001", "nama": "PT Freight Express Jakarta"}, {"kode": "PFFI-00001", "nama": "PT. Finusolprima Farma Internasional"}, {"kode": "PFGL-001", "nama": "PT FM Global Logistik"}, {"kode": "PFGL-002", "nama": "PT. FM Global Logistics"}, {"kode": "PFGP-001", "nama": "PT. Fais Gemilang Persada"}, {"kode": "PFI-001", "nama": "PT. Forecastle Indonesia"}, {"kode": "PFLI-001", "nama": "PT. Freight Liner Indonesia"}, {"kode": "PFSL-001", "nama": "PT Formosa Sejati Logistik"}, {"kode": "PFSL-002", "nama": "PT. FORMOSA SEJATI LOGISTICS"}, {"kode": "PFTI-00001", "nama": "PT Fluida Teknologi Indonesia"}, {"kode": "PFTI-00002", "nama": "PT. Fosun Trading Indonesia"}, {"kode": "PGA-001", "nama": "PT. Gapura Angkasa"}, {"kode": "PGAP-00002", "nama": "PT. Global Artha Pratama"}, {"kode": "PGBS-00001", "nama": "PT. Global Best Source"}, {"kode": "PGCL-001", "nama": "PT. Gateway Container Line"}, {"kode": "PGDA-001", "nama": "PT. Global Distribution Alliance"}, {"kode": "PGEI-001", "nama": "PT. Garuda Express Indonesia"}, {"kode": "PGF-00001", "nama": "PT. Gemilang Fortindo Prima"}, {"kode": "PGFFI-001", "nama": "PT. Geodis Freight Forwarding Indonesia"}, {"kode": "PGFI-001", "nama": "PT. Greating Fortune Indonesia"}, {"kode": "PGFI-", "nama": "PT. Greting Fortune"}, {"kode": "002", "nama": "Indonesia"}, {"kode": "PGGT-001", "nama": "PT. Green Global Transportasi"}, {"kode": "PGI-001", "nama": "PT Garuda Indonesia"}, {"kode": "PGI-002", "nama": "PT. GLORIUS INTERBUANA"}, {"kode": "PGIA-001", "nama": "PT. GLOBEMASTER INDONESIA ASIA"}, {"kode": "PGIT-001", "nama": "PT. GFC Indonesia Terminal"}, {"kode": "PGLU-001", "nama": "PT. Gamadi Lintas Utama"}, {"kode": "PGMA-001", "nama": "PT. Global Maritim Agensi"}, {"kode": "PGMT-001", "nama": "PT. Ganindo Mega Transport"}, {"kode": "PGMT-002", "nama": "PT GANINDO MARINE TRANSPORT"}, {"kode": "PGPA-001", "nama": "PT. Giat Putra Abadi"}, {"kode": "PGPL-00001", "nama": "PT. Galenium Pharmasia Laboratories"}, {"kode": "PGS-001", "nama": "PT. Graha Segara"}, {"kode": "PGSAAFI-001", "nama": "PT. GLOBELINK SEA AND AIR FREIGHT INDONESIA"}, {"kode": "PGTN-001", "nama": "PT. Global Transportasi Nusantara"}, {"kode": "PGTS-00001", "nama": "PT. Gane Tambang Sentosa"}, {"kode": "PGWI-001", "nama": "PT Geodis Wilson Indonesia"}, {"kode": "PGWL-001", "nama": "PT. Graha Wijaya Logistik"}, {"kode": "PH-001", "nama": "Pak Hasan"}, {"kode": "PHB-001", "nama": "Pak Hasan Balikpapan"}, {"kode": "PHFI-00001", "nama": "PT. Hcc Fiberoptic Indonesia"}, {"kode": "PHGLI-001", "nama": "PT. Hanjin Global Logistics Indonesia"}, {"kode": "PHHEI-001", "nama": "PT. Hankyu Hanshin Express"}, {"kode": "PHII-001", "nama": "PT. Haspul Internasional Indonesia"}, {"kode": "PHJL-00001", "nama": "PT. Hexpharm Jaya Laboratories"}, {"kode": "PHJS-001", "nama": "PT. Handal Jaya Service"}, {"kode": "PHLI-001", "nama": "PT. Heunga Line Internasional"}, {"kode": "PHML-00001", "nama": "PT. Hawa Mahardika Logistik"}, {"kode": "PHMS-001", "nama": "PT. Hyper Mega Shipping"}, {"kode": "PHS-001", "nama": "Pak Heri Semarang"}, {"kode": "PHT-001", "nama": "Pak Hasnur Tarakan"}, {"kode": "PHWLI-001", "nama": "PT Hellmann Worldwide Logistics Indonesia"}, {"kode": "PI-001", "nama": "Pak Imam"}, {"kode": "pi-001", "nama": "pelangi international"}, {"kode": "PIA&MS", "nama": "PT. Indonesia Air & Marine Supply"}, {"kode": "PIAI-00001", "nama": "PT. Inticorp Anekajasa Internasional"}, {"kode": "PiDDT-001", "nama": "PT. inti Duta Dwitama Transindo"}, {"kode": "PIE-00001", "nama": "PT. Indika Energy"}, {"kode": "PIHUA-00001", "nama": "PT. Indonesia Harapan Utama Agensi"}, {"kode": "PII-001", "nama": "PT Interlink Indonesia"}, {"kode": "PII-002", "nama": "PT. INTERLINK INDONESIA"}, {"kode": "PIJS-001", "nama": "PT Indra Jaya Swastika"}, {"kode": "PILI-001", "nama": "PT. ICT Logisitik Indonesia"}, {"kode": "PILI-002", "nama": "PT. INTEGRA LINE INDONESIA"}, {"kode": "PILI-004", "nama": "PT. ICHEETAH LOGISTICS INDONESIA"}, {"kode": "PILI-005", "nama": "PT. INFINITY LOGISTICS INDONESIA"}, {"kode": "PIMIP-001", "nama": "PT. Indonesia Morowali Industrial Park"}, {"kode": "PIMN-00001", "nama": "PT. Interport Multi Niaga"}, {"kode": "PIMUT-001", "nama": "PT. INTI MANDIRI UTAMA TRANS"}, {"kode": "PIOT-001", "nama": "PT Indonesia Ocean Truck"}, {"kode": "PIPA-001", "nama": "PT Indra Prasta Agung"}, {"kode": "PIPT-00001", "nama": "PT. Indo Prima Trans"}, {"kode": "PIS-001", "nama": "PT. Indrajaya Swastika"}, {"kode": "PISIW-00001", "nama": "PT. Indonesia Shengen"}, {"kode": "PIT-001", "nama": "PT. INDOPRIMA TRANS"}, {"kode": "PITI-001", "nama": "PT INTERCON TERMINAL INDONESIA"}, {"kode": "PITP-001", "nama": "PT. IPC Terminal Petikemas"}, {"kode": "PIUI-001", "nama": "PT. Indomarsan Utama International"}, {"kode": "PIXIL-00002", "nama": "PT. Indonesia Xingchen International Logistics"}, {"kode": "PJ-001", "nama": "Pak Jae"}, {"kode": "PJB-001", "nama": "PIL Jakarta Belawan"}, {"kode": "PJCS-001", "nama": "PT. JASA CENTINA SENTOSA"}, {"kode": "PJFS-001", "nama": "PT. Jameson Freight Semesta"}, {"kode": "PJHT-001", "nama": "PT Jazia Hersya Transport"}, {"kode": "PJLB-001", "nama": "PT. Jessindotama Lintas Bahari"}, {"kode": "PJLD-001", "nama": "PT. Jaya Laksana Domestindo"}, {"kode": "PJPT-001", "nama": "PT. Jatim Petroleum Transport"}, {"kode": "PJWI-001", "nama": "PT. JAS Worldwide Indonesia"}, {"kode": "PKAl-001", "nama": "PT. Karunia Abadi logstic"}, {"kode": "PKCC-001", "nama": "PT. King Cargo Caraka"}, {"kode": "PKCS-001", "nama": "PT Kemasindo Cepat Surabaya"}, {"kode": "PKeYM-001", "nama": "PT. Kartika eka Yudha Maritim"}, {"kode": "PKF-00001", "nama": "PT. Kalbe Farma Tbk"}, {"kode": "PKFLI-001", "nama": "PT. King Freight Logistics Indonesia"}, {"kode": "PKGA-001", "nama": "PT. Kcargo Global Agencies"}, {"kode": "PKGI-001", "nama": "PT KONEXI GLOBAL INDONESIA"}, {"kode": "PKGL-001", "nama": "PT. Kareem Global Logistindo"}, {"kode": "PKGM-001", "nama": "PT Kaiso Global Maritim"}, {"kode": "PKGS-001", "nama": "PT. Karya Gemilang Selatan"}, {"kode": "PKGTE-00001", "nama": "PT. Kariangau Gapura Terminal Energi"}, {"kode": "PKHT-001", "nama": "PT. KUDA HITAM TECH"}, {"kode": "PKII-001", "nama": "PT. KTL International Indonesia"}, {"kode": "PKK-00001", "nama": "PT. Kertopaten Kencana"}, {"kode": "PKK-002", "nama": "Pak Kevin KFI"}, {"kode": "PKKE-001", "nama": "PT. Korman Kencana Expressindo"}, {"kode": "PKKT-001", "nama": "PT. Kaltim Kariangau Terminal"}, {"kode": "PKMCS-001", "nama": "PT Korea Marine Cargo Services"}, {"kode": "PKMU-001", "nama": "PT. Kaluku Maritima Utama"}, {"kode": "PKN-001", "nama": "PT. Kertas Nusantara"}, {"kode": "PKNI-001", "nama": "PT KUEHNE NAGEL INDONESIA"}, {"kode": "PKPL-001", "nama": "PT. KARANA PANORAMA LOGISTIK"}, {"kode": "PKPS-00001", "nama": "PT. Karunia Permai Sentosa"}, {"kode": "PKW-001", "nama": "PT. Karga Walon"}, {"kode": "PLAAOI-001", "nama": "PT. Logwin Air And Ocean Indonesia"}, {"kode": "PLCA-001", "nama": "PT. LINTAS CAHAYA ABADI"}, {"kode": "PLFI-001", "nama": "PT. Logimark Forwarding Indonesia"}, {"kode": "PLGLI-00001", "nama": "PT. Lotte Global Logistics Indonesia"}, {"kode": "PLIC-001", "nama": "PT LOGISTIC INTERNASIONAL CARGO"}, {"kode": "PLIC-002", "nama": "PT. Logistik Internasional Cargo"}, {"kode": "PLKB-001", "nama": "PT. Logistik Karya Bermitra"}, {"kode": "PLL-001", "nama": "PRATHAMA LINE LOGISTIK"}, {"kode": "PLLI-001", "nama": "PT. Leschaho Logistic Indonesia"}, {"kode": "PLLM-001", "nama": "PT. Lautan Luas Maritim"}, {"kode": "PLMR-001", "nama": "PT. Lam Mora Ramothi"}, {"kode": "PLNT-001", "nama": "PT LINTAS NUSAPHALA TRANSPOR"}, {"kode": "PLPI-001", "nama": "PT. Link Pasipik Indonusa"}, {"kode": "PLPI-002", "nama": "PT. LX Pantos Indonesia"}, {"kode": "PLSS-001", "nama": "PT Layar Sentosa Shipping"}, {"kode": "PLTT-001", "nama": "PT. Lautan Tirta Transportama"}, {"kode": "PM-001", "nama": "PT. Manggala Kiat Ananda"}, {"kode": "PM-002", "nama": "Pak Muas"}, {"kode": "PMAL-", "nama": "PT. Mustika Alam Lestari"}, {"kode": "PMAMI-001", "nama": "PT. Miltzer And Muench Indonesia"}, {"kode": "PMAMI-002", "nama": "PT. Militzer And Muench Indonesia"}, {"kode": "PMAS-00002", "nama": "PT. Matahari Armada Sentosa"}, {"kode": "PMBA-001", "nama": "PT. Multi Bintang Abadi"}, {"kode": "PMBPI-001", "nama": "PT Multi Bina Pura International"}, {"kode": "PMFI-001", "nama": "PT. M+R Forwarding Indonesia"}, {"kode": "PMFI-003", "nama": "PT. M+R FORWARDING INDONESIA"}, {"kode": "PMFI-004", "nama": "PT. M+R FORWARDING INDONESIA"}, {"kode": "PMFS-001", "nama": "PT. Mentari Freight Services"}, {"kode": "PMI-001", "nama": "PT Mitrarejeki Investa"}, {"kode": "PMI-002", "nama": "PT. MOL Indonesia"}, {"kode": "PMIK-001", "nama": "PT. MARITIM INTER KONTINEN"}, {"kode": "PMIM-001", "nama": "PT. Mandiri Investa Maritim"}, {"kode": "PMIP-001", "nama": "PT. MJ Indah Perkasa"}, {"kode": "PMJLI-001", "nama": "PT. Mawar Juara Logistics Indonesia"}, {"kode": "PMKT-001", "nama": "PT. Masaji Kargosentra Tama"}, {"kode": "PML-001", "nama": "PT. Meratus Line"}, {"kode": "PML-002", "nama": "PT.Advantis Mitra Logistik"}, {"kode": "PMLE-001", "nama": "PT. MULTI LINTAS EXPRESINDO"}, {"kode": "PMMSI-001", "nama": "PT. MSC MEDITERRANEAN SHIPPING INDONESIA"}, {"kode": "PMP-00001", "nama": "PT. MARITIME POWER"}, {"kode": "PMPK-001", "nama": "PT MANDIRI PRATAMA KONSOLIDATOR"}, {"kode": "PMS-001", "nama": "PT. Muncul Suryaprima"}, {"kode": "PMSA-001", "nama": "PT. Multi Sejahtera Abadi"}, {"kode": "PMSA-002", "nama": "PT Monang Sianipar Abadi"}, {"kode": "PMSB-001", "nama": "PT. Marcapada Sukses Bersama"}, {"kode": "PMTI-001", "nama": "PT Multi Terminal Indonesia"}, {"kode": "PMTI-002", "nama": "PT. MCL Trans Indonesia"}, {"kode": "PMTK-001", "nama": "PT. Masaji Tatanan Kontainer"}, {"kode": "PMTL-001", "nama": "PT. Map Trans Logistic"}, {"kode": "PMTP-00002", "nama": "PT. Mandiri Tractors Perkasa"}, {"kode": "PMTP-001", "nama": "PT. Mitra Transindo Perkasa"}, {"kode": "PNA-001", "nama": "PT. Nankai AGL"}, {"kode": "PNAA-001", "nama": "PT. Ngupit Abadi Asasta"}, {"kode": "PNGS-00001", "nama": "PT. Nada Gemilang Sejahtera"}, {"kode": "PNJT-00001", "nama": "PT. Nusan Jaya Tekindo"}, {"kode": "PNKP-00001", "nama": "PT. Nona Kesehatan Perempuan"}, {"kode": "PNLI-00001", "nama": "PT. Nimco Logistics Indonesia"}, {"kode": "PNLN-00001", "nama": "PT. Nugraha Lintas Niaga"}, {"kode": "PNLWW-001", "nama": "PT NCS LINE WORLD WIDE"}, {"kode": "PNNTLI-001", "nama": "PT. NTL Naigai Trans Line Indonesia"}, {"kode": "PNNTLI-002", "nama": "PT. NTL NAIGAI TRANS LINE INDONESIA"}, {"kode": "PNTI-001", "nama": "PT. Nissin Transport Indonesia"}, {"kode": "POGI-", "nama": "PT. Ormat Geothermal"}, {"kode": "00001", "nama": "Indonesia"}, {"kode": "POLB-001", "nama": "PT. OPTIMA LAUTAN BERSAMA"}, {"kode": "POMM-00001", "nama": "PT. Otano Multi Mesindo"}, {"kode": "PONC-00001", "nama": "PT. OBI NICKEL COBALT"}, {"kode": "PP-001", "nama": "Parama Pelindo"}, {"kode": "PPA-001", "nama": "PT Parani Artamandiri"}, {"kode": "PPAL-001", "nama": "PT. PORT AVANT LOGISTICS"}, {"kode": "PPBI-00001", "nama": "PT Panthera Biru Indonesia"}, {"kode": "PPBL-001", "nama": "PT. Putra Biola Lestari"}, {"kode": "PPBP-001", "nama": "PT Pelayaran Bintang Putih"}, {"kode": "PPBP-002", "nama": "PT. Pelayaran Bintang Putih"}, {"kode": "PPCTP-001", "nama": "PT. Pelayaran Caraka Tirta Perkasa"}, {"kode": "PPGP-00001", "nama": "PT. Petrotec Guna Perkasa"}, {"kode": "PPIL-001", "nama": "PT. Pelangi Internasional Logistik"}, {"kode": "PPIL-002", "nama": "PT. Pelangi International Logistics"}, {"kode": "PPILI-001", "nama": "PT. PACIFIC INTERNATIONAL LINES INDONESIA"}, {"kode": "PPJE-001", "nama": "PT. Pastindo Jasa Express"}, {"kode": "PPJM-001", "nama": "PT. Pusaka Jaya Maritim"}, {"kode": "PPJP-001", "nama": "PT Primanata Jasa Persada"}, {"kode": "PPJT-001", "nama": "PT. Papan Jaya Tirta"}, {"kode": "PPK-001", "nama": "PT. PELAYARAN KORINDO"}, {"kode": "PPKL-001", "nama": "PT. Pelayaran Karana Lines"}, {"kode": "PPKL-002", "nama": "PT. Putra Ketapang Lestari"}, {"kode": "PPL-001", "nama": "Panah Perdana Logisindo"}, {"kode": "PPLI-001", "nama": "PT. PRECISION LOGISTIK INTERNATIONAL"}, {"kode": "PPLI-002", "nama": "PT. Precision Logistik Indonesia"}, {"kode": "PPLI-003", "nama": "PT. PRECISION LOGISTIK INTERNASIONAL"}, {"kode": "PPLK-001", "nama": "PT Pesaka Loka Kirana"}, {"kode": "PPLL-001", "nama": "PT PRATHAMA LINE LOGISTICS"}, {"kode": "PPLL-002", "nama": "PT. PRATHAMA LINE LOGISTICS"}, {"kode": "PPML-001", "nama": "PT. Proteus Mitra Logistic"}, {"kode": "PPMP-001", "nama": "PT. PRASETYA MITRA PERSADA"}, {"kode": "PPMTB-001", "nama": "PT. Pelindo Multi Terminal Balikpapan"}, {"kode": "PPPLA-001", "nama": "PT. Pelopor Pratama Lancar Abadi"}, {"kode": "PPPNP-001", "nama": "PT Perusahaan Pelayaran Nusantara Panurjwan"}, {"kode": "PPPS-001", "nama": "PT Pelayaran Putra Sejati"}, {"kode": "PPRT-001", "nama": "PT. Perigi Raja Terpadu"}, {"kode": "PPSD-00001", "nama": "PT. Pakde Solusi Digital"}, {"kode": "PPSI-001", "nama": "PT. Patriots Sakti Indonesia"}, {"kode": "PPSL-001", "nama": "PT. PBJ Shipping Lines"}, {"kode": "PPSP-001", "nama": "PT. Pelabuhan Samudera Palaran"}, {"kode": "PPSU-001", "nama": "PT Primamas Segara Unggul"}, {"kode": "PPTS-001", "nama": "PT. Pelayaran Tresnamuda Sejati"}, {"kode": "PPU-001", "nama": "PT.Schenker Petrolog Utama"}, {"kode": "PQL-001", "nama": "PT. Quanterm Logistindo"}, {"kode": "PR-001", "nama": "Pak Raminto"}, {"kode": "PR-002", "nama": "PT. RAFLY TRANS UTAMA"}, {"kode": "PRAB-001", "nama": "PT. Rezki Abadi Bersama"}, {"kode": "PRAP-001", "nama": "PT RAYYAN ABADI PERKASA"}, {"kode": "PRAP-002", "nama": "PT. Rayyan Abadi Perkasa"}, {"kode": "PRBJ-001", "nama": "PT. REZEKI BUANA JASINDO"}, {"kode": "PRLI-001", "nama": "PT Rhenus Logistics Indonesia"}, {"kode": "PRLI-002", "nama": "PT. Rohlig Logistik Indonesia"}, {"kode": "PRNM-001", "nama": "PT. Reka Nusa Mahardika"}, {"kode": "PRPS-001", "nama": "PT. RATU PRIMA SAMUDERA"}, {"kode": "PRPT-001", "nama": "PT. Rahayu Perdana Trans"}, {"kode": "PRRH-001", "nama": "Pak Rival Ronaldo Hengky"}, {"kode": "PS-003", "nama": "Pak Suprihanto"}, {"kode": "PSAD-00001", "nama": "PT. Sumber Air Dewa"}, {"kode": "PSADP-001", "nama": "PT. Satu Atap Dua Pintu"}, {"kode": "PSAI-001", "nama": "PT.AWARDS SHIPPING"}, {"kode": "PSAI-002", "nama": "PT Samudera Agencies Indonesia"}, {"kode": "PSAI-003", "nama": "PT. Samudera Agencies Indonesia"}, {"kode": "PSAM-001", "nama": "PT. Sulit Air Mulia"}, {"kode": "PSAMT-001", "nama": "PT. Sukses Abadi Mandiri Trans"}, {"kode": "PSAT-001", "nama": "PT. Solusi Aman Transport"}, {"kode": "PSB-00001", "nama": "PT. Pusat Sarana Baruna"}, {"kode": "PSBI-00001", "nama": "PT. Solvit Bio Indonesia"}, {"kode": "PSBJ-001", "nama": "PT. SHAMBALA BULUNGAN JAYA"}, {"kode": "PSBL-001", "nama": "PT. Sinar Baru Logistik"}, {"kode": "PSBM-001", "nama": "PT. Sinergi Bahtera Mitra"}, {"kode": "PSBN-001", "nama": "PT. Sima Bintang  Niaga"}, {"kode": "PSBS-001", "nama": "PT Seacon Bintang Sejahtera"}, {"kode": "PSBU-001", "nama": "PT. Surya Bahari Utama"}, {"kode": "PSCL-001", "nama": "PT. SURYA CEMERLANG LOGISTIK"}, {"kode": "PSCS-001", "nama": "PT. SAI CAB SEMARANG"}, {"kode": "PSCU-001", "nama": "PT Sarana Cipta Unggul"}, {"kode": "PSDS-001", "nama": "PT. SMART DEPOT SEMARANG"}, {"kode": "PSE-002", "nama": "PT. SURABAYA EXPRESS"}, {"kode": "PSEI-00001", "nama": "PT Surya Emas Indonesia"}, {"kode": "PSEL-001", "nama": "PT Solusi Express Logistic"}, {"kode": "PSET-001", "nama": "PT. SAMUERA ENERGI TANGGUH"}, {"kode": "PSET-002", "nama": "PT. SAMUDERA ENERGI TANGGUH"}, {"kode": "PSET-003", "nama": "PT. SMUDERA ENERGI TANGGUH"}, {"kode": "PSGI-001", "nama": "PT Scan Global Indonesia"}, {"kode": "PSGIn-001", "nama": "PT Scan Global I ndonesia"}, {"kode": "PSGL-001", "nama": "PT. Sung Gong Logistics"}, {"kode": "PSI-001", "nama": "PT. SITC LOGISTIK INDONESIA"}, {"kode": "PSI-002", "nama": "PT SKR INTERNASIONAL"}, {"kode": "PSI-003", "nama": "PT. SKR Internasional"}, {"kode": "PSI-004", "nama": "PT. SITC INDONESIA"}, {"kode": "PSI-005", "nama": "PT SILKARGO INDONESIA"}, {"kode": "PSI-007", "nama": "PT.SEALEAD SHIPPING INDONESIA"}, {"kode": "PSIL-001", "nama": "PT. SARANA INTI LOGITAMA"}, {"kode": "PSJ-001", "nama": "PT. Sinar Jatimitra"}, {"kode": "PSJP-001", "nama": "PT Sendy Jaya Putra"}, {"kode": "PSJU-00001", "nama": "PT. Sempurna Jasa Utama"}, {"kode": "PSKG-001", "nama": "PT. SURYA KENCANA GEMILANG"}, {"kode": "PSL-001", "nama": "PT SKY LIGHT MULTITRADA"}, {"kode": "PSLI-001", "nama": "PT. Schenker Logistik Indonesia"}, {"kode": "PSLI-003", "nama": "PT. Sricon Logistik Indonesia"}, {"kode": "PSLI-004", "nama": "PT. Sinotrans Logistik Indonesia"}, {"kode": "PSLI-005", "nama": "PT. SINOTRANS LOGISTICS INDONESIA"}, {"kode": "PSLI-006", "nama": "PT. Schenker Logistics Indonesia"}, {"kode": "PSLI-007", "nama": "PT. SMFL Leasing Indonesia"}, {"kode": "PSLL-001", "nama": "PT. SAMUDERA LAUTAN LUAS"}, {"kode": "PSLM-001", "nama": "Pak Soleman Lantaa Manado"}, {"kode": "PSLM-002", "nama": "PT. Sky Light Multitrada"}, {"kode": "PSLT-001", "nama": "PT Seacon LNJ Terminal"}, {"kode": "PSNG-001", "nama": "PT. SAMUDERA NAGA GLOBAL"}, {"kode": "PSOI-00001", "nama": "PT. Sinotrans Overseas"}, {"kode": "PSPIL-001", "nama": "PT. Salam Pasific Indonesia Lines"}, {"kode": "PSPLI-001", "nama": "PT. Sanggraha Pintar Logistik Indonesia"}, {"kode": "PSS-001", "nama": "Pak Siman Setiawan"}, {"kode": "PSSI-001", "nama": "PT. Star Shipping Indonesia"}, {"kode": "PSSI-002", "nama": "PT. Scan Shipping Indonesia"}, {"kode": "PSSI-003", "nama": "PT. Sealead Shipping Indonesia"}, {"kode": "PSSJ-001", "nama": "PT SUMA SAMUDERA JAYA"}, {"kode": "PSSL-001", "nama": "PT. Seven Seas Logistics"}, {"kode": "PSSL-002", "nama": "PT. Sinergi Sukses Logistik"}, {"kode": "PSSP-00002", "nama": "PT. Selalu Sukses Prima"}, {"kode": "PSSS-001", "nama": "PT. SURYA SURINDO SAGARA"}, {"kode": "PSSS-002", "nama": "PT. Surya Sekawan Sejahtera"}, {"kode": "PSSS-003", "nama": "PT Surya Sekawan Sejahtera"}, {"kode": "PSTI-001", "nama": "PT. Shipco Transport Indonesia"}, {"kode": "PSTK-00001", "nama": "PT. Subur Tanah Kita"}, {"kode": "PTAN-001", "nama": "PT TRIUNFARA ABADI NUSANTARA"}, {"kode": "PTBS-001", "nama": "PT. Tata Bandar Samudera"}, {"kode": "PTCT-001", "nama": "PT. TUNGYA COLLINS TERMINAL"}, {"kode": "PTE-001", "nama": "PT. Tabitha Express"}, {"kode": "PTE-002", "nama": "PT.On Time Express"}, {"kode": "PTEJM-001", "nama": "PT. TRI ELANG JAYA MARITIM"}, {"kode": "PTG-001", "nama": "PT. Transworld GLS"}, {"kode": "PTH-001", "nama": "Pak Titan Hanindo"}, {"kode": "PTIL-001", "nama": "PT. Tanto Intim Line"}, {"kode": "PTIM-001", "nama": "PT. Trielang Indo Maritim"}, {"kode": "PTJ-001", "nama": "PT Thirtawana Jaya"}, {"kode": "PTL-001", "nama": "PT. TPIL LOGISTICS"}, {"kode": "PTLI-001", "nama": "PT. TELU LOGISTIK INDONESIA"}, {"kode": "PTLI-002", "nama": "PT. Transhub Logistik Indonesia"}, {"kode": "PTLI-003", "nama": "PT. THI Logistics Indonesia"}, {"kode": "PTLP-001", "nama": "PT. Transporindo Lima Perkasa"}, {"kode": "PTM-001", "nama": "PT.CAHAYA TRANSPORT MARITIM"}, {"kode": "PTMI-001", "nama": "PT. Transliner Maritime Indonesia"}, {"kode": "PTMJ-001", "nama": "PT. Tirta Mandiri Jasatama"}, {"kode": "PTMJ-002", "nama": "PT Tirta Mandiri Jasatama"}, {"kode": "PTML-001", "nama": "PT. TRASNPORTAMA MANDIRI LOGISTIK"}, {"kode": "PTMM-001", "nama": "PT. Tujuan Mulia Makmur"}, {"kode": "PTMS(T-00001", "nama": "PT. Tunas Mitra Selaras (Depo Tras)"}, {"kode": "PTPL-001", "nama": "PT. Trans Pacific Logistics"}, {"kode": "PTPU-00001", "nama": "PT. Traktor Perkasa Utama"}, {"kode": "PTSC-001", "nama": "PT. Temas Shipping Cakrawala"}, {"kode": "PTSI-001", "nama": "PT. Temas Segara Indonesia"}, {"kode": "PTSI-002", "nama": "PT. TVS SCS Indonesia"}, {"kode": "PTSJ-001", "nama": "PT. Tangguh Samudera Jaya"}, {"kode": "PTSK-001", "nama": "PT. TUNAS SAMUDRA KURNIA"}, {"kode": "PTSP-", "nama": "PT. Top Surya Packindo"}, {"kode": "PTT-00001", "nama": "PT. Thomas Trans"}, {"kode": "PTTL-001", "nama": "PT. Total Trans Logistik"}, {"kode": "PTTL-002", "nama": "PT TOTAL TRANS LOGISTIK"}, {"kode": "PTUM-001", "nama": "PT. Tibo Urip Mulyo"}, {"kode": "PTXCSCI-00002", "nama": "PT. Tian Xing Cloud Supply Chain Indonesia"}, {"kode": "PTY-001", "nama": "Pak Tommy Yossava"}, {"kode": "PUCI-001", "nama": "PT. UPS Cardig International"}, {"kode": "PURI-001", "nama": "PT. Unex Rajawali Indonesia"}, {"kode": "PV-00001", "nama": "PT. VALMET"}, {"kode": "PVILI-001", "nama": "PT. VP INTERNATIONAL LOGISTICS INDONESIA"}, {"kode": "PVLI-001", "nama": "PT Vanguard Logistics Indonesia"}, {"kode": "PVLI-002", "nama": "PT VINFLAIR LOGISTICS INDONESIA"}, {"kode": "PVM-001", "nama": "Pak Vidilius Manado"}, {"kode": "PVM-002", "nama": "Pak Vincentius Manado"}, {"kode": "PVMB-001", "nama": "PT. VIFIERA MINOVA BERSAUDRA"}, {"kode": "PW-001", "nama": "Pak Wagino"}, {"kode": "PW-002", "nama": "PAK WAHYUDI"}, {"kode": "PWCI-00002", "nama": "PT. Wonwoo Commerce Indonesia"}, {"kode": "PWD(-001", "nama": "PT. Wahana Dirgantara (GDWD)"}, {"kode": "PWD-001", "nama": "PT. Wahana Dirgantara"}, {"kode": "PWL-001", "nama": "PT Wide Logistics"}, {"kode": "PWLI-001", "nama": "PT. WIinfast Lines Indonesia"}, {"kode": "PWLI-002", "nama": "PT. Winfast Lines Indonesia"}, {"kode": "PWLS-001", "nama": "PT Wijaya Langgeng Sejahtera"}, {"kode": "PWM-00001", "nama": "PT. Wiltama Megaprima"}, {"kode": "PWMP-001", "nama": "PT. WIRA MITRA PRIMA"}, {"kode": "PWS-001", "nama": "Pak Wawan Samarinda"}, {"kode": "PY-001", "nama": "PT. YTC Logistik Indonesia"}, {"kode": "PYLI-001", "nama": "PT. Yusen Logistics Indonesia"}, {"kode": "PYMSI-001", "nama": "PT Yang Ming Shipping Indonesia"}, {"kode": "PYTL-001", "nama": "PT. Yossava Trans Logistik"}, {"kode": "PZLS-001", "nama": "PT. Zona Lintas Samudera"}, {"kode": "PZMT-00002", "nama": "PT. Zimmoah Marine Trans"}, {"kode": "R-002", "nama": "RUGINO"}, {"kode": "RA-001", "nama": "Reza Arizal"}, {"kode": "RB-001", "nama": "Ruslan Bugis"}, {"kode": "rf-001", "nama": "rafly fadillah"}, {"kode": "RF-001", "nama": "Ramla Farawowan"}, {"kode": "RHI-001", "nama": "Rosma Hotma Ida"}, {"kode": "RK-001", "nama": "Ratri Kameswari"}, {"kode": "RO-001", "nama": "Rizka Oktarika"}, {"kode": "RRHW-001", "nama": "Rivaldo Ronaldo Hengky War"}, {"kode": "RS-001", "nama": "REMON SAGITA"}, {"kode": "RS-002", "nama": "Reindo Syariah"}, {"kode": "S-00011", "nama": "Hua Gan"}, {"kode": "S-004", "nama": "Subekti"}, {"kode": "S-006", "nama": "SINOKOR"}, {"kode": "S-008", "nama": "PT. Sae Asia Logistik"}, {"kode": "S-009", "nama": "Salma"}, {"kode": "s-010", "nama": "slame"}, {"kode": "S-012", "nama": "SLAMET"}, {"kode": "s-013", "nama": "shipco"}, {"kode": "S-013", "nama": "SURABAYAEX"}, {"kode": "s-014", "nama": "sanggraha"}, {"kode": "SA-002", "nama": "Saldo Awal"}, {"kode": "SA-003", "nama": "Samuel Anthonius"}, {"kode": "SA-004", "nama": "Sri Anah"}, {"kode": "SA-005", "nama": "Sepul Arip"}, {"kode": "sb-001", "nama": "sinar biru"}, {"kode": "SCI1", "nama": "PT Sinotrans CSC Indonesia"}, {"kode": "SCL(T-001", "nama": "SURYA CEMERLANG LOGISTIK (SCL TRANS)"}, {"kode": "SCLCL-001", "nama": "SITC CONTAINER LINES COMPANY LIMITED"}, {"kode": "SD-001", "nama": "Sinergi Depot"}, {"kode": "SD-002", "nama": "Surya Dharma"}, {"kode": "SD-003", "nama": "Soni Dharmawan"}, {"kode": "SE-001", "nama": "SURABAYA EXPRESS"}, {"kode": "SEA-001", "nama": "Segara Ekualitas Abadi"}, {"kode": "SIL-001", "nama": "SARANA INTI LOGITIMA"}, {"kode": "SJM-001", "nama": "SINAR JATI MITRA"}, {"kode": "SLL", "nama": "PT. Samudera Lampung Logistik"}, {"kode": "sm-001", "nama": "sri mur"}, {"kode": "SM-001", "nama": "Sri Muryani"}, {"kode": "sm-002", "nama": "sri mury"}, {"kode": "SMU-001", "nama": "SURYA MARITIM UTAMA"}, {"kode": "sp-001", "nama": "segara pasi"}, {"kode": "SPM(S-001", "nama": "Segara Pasific Maju"}, {"kode": "SSCTSC-00001", "nama": "SHANGHAI SUPER CARGO TRANS SCM CO.,LTD"}, {"kode": "T-002", "nama": "Taufik"}, {"kode": "t-002", "nama": "transporatama"}, {"kode": "TCT-001", "nama": "Tungya Collins Terminal"}, {"kode": "TE-001", "nama": "Titan Eka"}, {"kode": "TF-001", "nama": "Thufailah Fajrin"}, {"kode": "TI-001", "nama": "Toni Irwanto"}, {"kode": "Tias", "nama": "M. Tias Randianto"}, {"kode": "TL-00001", "nama": "Truck Luar"}, {"kode": "TL-002", "nama": "Temas Line"}, {"kode": "TL-003", "nama": "TS Line"}, {"kode": "TML-001", "nama": "Transportama Mandiri Logistik"}, {"kode": "TPK-001", "nama": "Terminal Petikemas Koja"}, {"kode": "TPS-001", "nama": "Terminal Petikemas Semarang"}, {"kode": "TPS-002", "nama": "Tanjung Perak Swadaya"}, {"kode": "TSE-001", "nama": "Total Solusi Expressindo"}, {"kode": "TSL-001", "nama": "Tisco Sindo Logistic"}, {"kode": "TT-001", "nama": "TPP Tripandu"}, {"kode": "TY-001", "nama": "Tamara Yunidar Asmah"}, {"kode": "UM-001", "nama": "Umbu Maaya"}, {"kode": "UT-001", "nama": "Usni Tamrin"}, {"kode": "UT-002", "nama": "UCRIT TRANS"}, {"kode": "v-001", "nama": "vidili"}, {"kode": "W-001", "nama": "Winarno"}, {"kode": "w-001", "nama": "wiwit;roni;subur;waudin;Amir;Yitno;sigit;Eko;akmal;Ikfan"}, {"kode": "W-002", "nama": "Waudin"}, {"kode": "WWWS-001", "nama": "Wahyu Winarno Warsito S"}, {"kode": "Y-002", "nama": "YEHUDA"}, {"kode": "Y-003", "nama": "YANGMIN"}, {"kode": "YG-001", "nama": "Yosevina Galuh"}, {"kode": "YI-001", "nama": "Yanto Imri"}, {"kode": "YIBN-001", "nama": "Yayasan Inspirasi Bagimu Negeri"}, {"kode": "YII1", "nama": "PT. Yahata Industry Indonesia"}, {"kode": "YK-001", "nama": "Yehuda Kenny"}, {"kode": "YKP-001", "nama": "YEHUDA KENNY PATRIOTSKY"}, {"kode": "YLI-PPS-001", "nama": "YES Logistics Indonesia - PT Pelabuhan S"}];
+const AKUN_LIST_FALLBACK = [{"kode": "HD-00001", "nama": "Handling DG"}, {"kode": "HPP-00011", "nama": "Export Clearance"}, {"kode": "HPP-00012", "nama": "Export Handling"}, {"kode": "RE-00001", "nama": "Re ekspor"}, {"kode": "RE-00002", "nama": "Re Export"}, {"kode": "TP-00001", "nama": "Transfer PEB"}, {"kode": "A-00001", "nama": "Administrasi"}, {"kode": "BDD-00001", "nama": "Behandle"}, {"kode": "BDD-00002", "nama": "Unloading"}, {"kode": "BDD-00003", "nama": "Demmurage"}, {"kode": "BDD-00004", "nama": "Dettention"}, {"kode": "BDD-00005", "nama": "DO"}, {"kode": "BDD-00006", "nama": "Extend DO"}, {"kode": "BDD-00007", "nama": "Forklift"}, {"kode": "BDD-00009", "nama": "Lift Off"}, {"kode": "BDD-00010", "nama": "Lift On"}, {"kode": "BDD-00011", "nama": "Parking"}, {"kode": "BDD-00012", "nama": "Pre DO"}, {"kode": "BDD-00013", "nama": "Print AWB / BL"}, {"kode": "BDD-00014", "nama": "Repair Container"}, {"kode": "BDD-00015", "nama": "Stamp Duty"}, {"kode": "BDD-00016", "nama": "Storage"}, {"kode": "BDD-00017", "nama": "Handling Fumigasi"}, {"kode": "BM-00001", "nama": "Bongkar Muat"}, {"kode": "CB-00001", "nama": "Customs Bond"}, {"kode": "CBLI-00001", "nama": "Customs Broker LCL&FCL Import"}, {"kode": "CEF-00001", "nama": "Custom Edi Fee"}, {"kode": "CF-00001", "nama": "Consulting Fee"}, {"kode": "CHE-00001", "nama": "Customs Handling Export"}, {"kode": "DB-00001", "nama": "Delivery BL"}, {"kode": "DC-00001", "nama": "Delivery COO"}, {"kode": "DCDTDMTKCAKK2F-00001", "nama": "Domestic Container door to door Marunda to Kobexindo Cement at Kutai Kartanegara 20 FT"}, {"kode": "DFDTDJ-00001", "nama": "Domestic Freight Door to Door Jakarta-Kutai"}, {"kode": "DFDTDJ-00002", "nama": "Domestic Freight Door to Door Jakarta-Kendari"}, {"kode": "DFDTPJ-00001", "nama": "Domestic Freight Door to Port Jakarta-Balikpapan"}, {"kode": "DFPTDJ-K-00001", "nama": "Domestic Freight Port to Door Jakarta - Kendari"}, {"kode": "DFPTDJ-S-00001", "nama": "Domestic Freight Port to Door Jakarta - Samarinda"}, {"kode": "DFPTDJB-00001", "nama": "Domestic Freight Port to Door Jakarta-Bau bau"}, {"kode": "DFPTPJ1-00001", "nama": "Domestic Freight Port to Port Jakarta-Balikpapan-Kutai 1x21"}, {"kode": "DFPTPS-00001", "nama": "Domestic Freight Port to Port Surabaya-Baubau"}, {"kode": "DFPTPS-00002", "nama": "Domestic Freight Port to Port Surabaya-Samarinda"}, {"kode": "GLCCF-00002", "nama": "Green Lane: Customs Clearance/Management Fee"}, {"kode": "GLCCF-2C-00001", "nama": "Green Lane: Customs Clearance/Management Fee - 2nd container"}, {"kode": "GLCCFC-00001", "nama": "Green Lane: Customs Clearance/Management Fee-1st Container"}, {"kode": "HPP-00001", "nama": "Additional Handling"}, {"kode": "HPP-00002", "nama": "Additional Redline"}, {"kode": "HPP-000023", "nama": "Freight"}, {"kode": "HPP-00003", "nama": "Additional Trucking"}, {"kode": "HPP-00004", "nama": "Additional Worker"}, {"kode": "HPP-00005", "nama": "Agency Fee"}, {"kode": "HPP-00006", "nama": "Barcode Charge"}, {"kode": "HPP-00007", "nama": "Batal OB"}, {"kode": "HPP-00008", "nama": "Billing"}, {"kode": "HPP-00009", "nama": "Customs Clearance"}, {"kode": "HPP-00010", "nama": "DO Administration"}, {"kode": "HPP-00013", "nama": "Handling"}, {"kode": "HPP-00014", "nama": "Handling LCL"}, {"kode": "HPP-00015", "nama": "ID Master"}, {"kode": "HPP-00016", "nama": "Import Clearance"}, {"kode": "HPP-00017", "nama": "Import Duty & Tax"}, {"kode": "HPP-00018", "nama": "Lashing"}, {"kode": "HPP-00019", "nama": "Local Insurance"}, {"kode": "HPP-00020", "nama": "NHI"}, {"kode": "HPP-00021", "nama": "Overnight Trucking"}, {"kode": "HPP-00022", "nama": "Redline"}, {"kode": "HPP-00023", "nama": "Stripping"}, {"kode": "HPP-00024", "nama": "Stuffing"}, {"kode": "HPP-00025", "nama": "Temporary Storage"}, {"kode": "HPP-00026", "nama": "Transfer PIB"}, {"kode": "HPP-00027", "nama": "Trucking"}, {"kode": "HPP-00028", "nama": "Undertable"}, {"kode": "HPP-00029", "nama": "BL Fee"}, {"kode": "IC-00001", "nama": "Import Custom Clearance"}, {"kode": "ID-00001", "nama": "Import Declaration"}, {"kode": "J/D-00001", "nama": "Jaminan / Deposit"}, {"kode": "K-00001", "nama": "Kawalan"}, {"kode": "LCD-00001", "nama": "Local Charge Destination"}, {"kode": "LCO-00001", "nama": "Local Charge Origin"}, {"kode": "LD-00001", "nama": "Domestic Container door to door Marunda to Kobexindo Ceent at Kutai Kartanegara 20 FT"}, {"kode": "LD-00002", "nama": "Domestic Container door to door Marunda to Kobexindo Ceent at Kutai Kartanegara 21T"}, {"kode": "LD-00003", "nama": "Domestic Container door to door Marunda to Kobexindo Cement at Kutai Kartanegara 21 FT"}, {"kode": "LD-00004", "nama": "Domestic Container door to door Marunda to Laroenai via Kendari Port 20 FT"}, {"kode": "LD-00005", "nama": "Domestic Countainer door to door Marunda to Laroenai via Kendari Port"}, {"kode": "LD-00006", "nama": "Domestic Freight Door to Port Jakarta-Bau bau, Southeast Sulawesi"}, {"kode": "LOLO-00001", "nama": "Lift On Lift Off"}, {"kode": "MF-00001", "nama": "Management Fee"}, {"kode": "MF5T-00001", "nama": "Mekanik Forklift 5 Ton"}, {"kode": "MF7T-00001", "nama": "Mekanik Forklift 7 Ton"}, {"kode": "OC-00001", "nama": "Overtime Cargo"}, {"kode": "OH-00001", "nama": "Overtime Handling"}, {"kode": "PJ-00001", "nama": "Premi Jaminan"}, {"kode": "R-00001", "nama": "Relocations"}, {"kode": "RH-00001", "nama": "Rush Handling"}, {"kode": "RLPI-00001", "nama": "Physical Inspection"}, {"kode": "S-00001", "nama": "SKA"}, {"kode": "SCD-00001", "nama": "Shipping Company DO"}, {"kode": "T-00001", "nama": "TKBM"}, {"kode": "T1F-00001", "nama": "TKBM 1X40 Feet"}, {"kode": "T3M-00001", "nama": "TKBM 3 Mobil"}, {"kode": "U-00001", "nama": "Undername"}, {"kode": "DF-00001", "nama": "Document Fee"}, {"kode": "H-00001", "nama": "Handling"}, {"kode": "H-00002", "nama": "Handling"}, {"kode": "LO-00001", "nama": "LIft Off"}, {"kode": "OC-00002", "nama": "Origin Charges"}, {"kode": "OF-00001", "nama": "Ocean/Air Freight"}, {"kode": "PDF-00001", "nama": "PIB Document Fee"}, {"kode": "RLCCMF-00001", "nama": "Red Lane: Customs Clearance/ Management Fee"}, {"kode": "S-00002", "nama": "storage"}, {"kode": "TE-00001", "nama": "Trucking Export"}, {"kode": "TI-00001", "nama": "Trucking Import"}];
+
+const pic = document.getElementById("pic");
+const biayaContainer = document.getElementById("biayaContainer");
+const btnAddBiaya = document.getElementById("btnAddBiaya");
+const btnSubmit = document.getElementById("btnSubmit");
+
+let submitting = false;
+let biayaCount = 0;
+
+/* Data master (PIC, Sumber Dana, Akun, Pemasok) diisi setelah fetch ke Google Sheet berhasil */
+let PIC_LIST = [];
+let SUMBER_DANA_LIST = [];
+let PEMASOK_LIST = [];
+let AKUN_LIST = [];
+
+/* ================= AMBIL DATA MASTER DARI GOOGLE SHEET ================= */
+pic.innerHTML = `<option value="">Memuat data...</option>`;
+btnAddBiaya.disabled = true;
+btnSubmit.disabled = true;
+
+fetch(SCRIPT_URL + "?action=getLists&t=" + Date.now(), { cache: "no-store" })
+  .then(res => res.json())
+  .then(masterData => {
+    PIC_LIST = (masterData.pic && masterData.pic.length) ? masterData.pic : PIC_LIST_FALLBACK;
+    SUMBER_DANA_LIST = (masterData.sumberDana && masterData.sumberDana.length) ? masterData.sumberDana : SUMBER_DANA_LIST_FALLBACK;
+    PEMASOK_LIST = (masterData.pemasok && masterData.pemasok.length) ? masterData.pemasok : PEMASOK_LIST_FALLBACK;
+    AKUN_LIST = (masterData.akun && masterData.akun.length) ? masterData.akun : AKUN_LIST_FALLBACK;
+    initForm();
+  })
+  .catch(err => {
+    console.error("Gagal mengambil data master dari Sheet, pakai data cadangan:", err);
+    PIC_LIST = PIC_LIST_FALLBACK;
+    SUMBER_DANA_LIST = SUMBER_DANA_LIST_FALLBACK;
+    PEMASOK_LIST = PEMASOK_LIST_FALLBACK;
+    AKUN_LIST = AKUN_LIST_FALLBACK;
+    initForm();
+  });
+
+function initForm(){
+  btnAddBiaya.disabled = false;
+  btnSubmit.disabled = false;
+
+  /* ================= ISI PIC ================= */
+  pic.innerHTML = `<option value="">-- pilih --</option>`;
+  PIC_LIST.forEach(v=>{
+    pic.insertAdjacentHTML("beforeend", `<option>${v}</option>`);
+  });
+
+  /* Company Name pakai combo search */
+  const companyNameList = SUMBER_DANA_LIST.map(v => ({ kode:"", nama:v }));
+  buildCombo(document.querySelector(".companyNameCol"), companyNameList, "Cari company name...", true);
+
+  btnAddBiaya.onclick = addBiaya;
+  addBiaya();
+}
+
+/* ================= COMBO SEARCH HELPER (Sumber Dana / Pemasok / Akun) ================= */
+function buildCombo(col, list, placeholder, nameOnly){
+  col.innerHTML = col.querySelector("label").outerHTML + `
+    <input class="comboSearch" placeholder="${placeholder}" autocomplete="off">
+    <input type="hidden" class="comboValueKode">
+    <div class="combo-list"></div>
+  `;
+
+  const searchInput = col.querySelector(".comboSearch");
+  const hiddenInput = col.querySelector(".comboValueKode");
+  const listEl = col.querySelector(".combo-list");
+
+  function render(filtered){
+    listEl.innerHTML = "";
+    filtered.slice(0, 50).forEach(item=>{
+      const opt = document.createElement("div");
+      opt.textContent = nameOnly ? item.nama : `${item.kode}; ${item.nama}`;
+      opt.onclick = ()=>{
+        searchInput.value = nameOnly ? item.nama : `${item.kode}; ${item.nama}`;
+        hiddenInput.value = item.kode;
+        listEl.style.display = "none";
+      };
+      listEl.appendChild(opt);
+    });
+    listEl.style.display = filtered.length ? "block" : "none";
+  }
+
+  searchInput.addEventListener("input", ()=>{
+    hiddenInput.value = "";
+    const q = searchInput.value.toLowerCase();
+    const filtered = list.filter(i =>
+      i.nama.toLowerCase().includes(q) || i.kode.toLowerCase().includes(q)
+    );
+    render(filtered);
+  });
+
+  searchInput.addEventListener("focus", ()=>{
+    render(list);
+  });
+
+  document.addEventListener("click", (e)=>{
+    if(!col.contains(e.target)){
+      listEl.style.display = "none";
+    }
+  });
+
+  return { searchInput, hiddenInput };
+}
+
+/* ================= ADD BIAYA (Detail Voucher) ================= */
+/* Semua field ditaruh dalam SATU baris (flex-wrap), sesuai sketsa form */
+function addBiaya(){
+  biayaCount++;
+  const block = document.createElement("div");
+  block.className = "biaya-block";
+
+  block.innerHTML = `
+    <button class="btn btn-danger">Hapus</button>
+    <div class="section-label">Detail VCR ${biayaCount}</div>
+
+    <div class="row">
+      <div class="col blawb">
+        <label>No. BL / AWB</label>
+        <input class="blAwb">
+      </div>
+      <div class="col aju">
+        <label>No. AJU</label>
+        <input class="aju">
+      </div>
+      <div class="col tipe">
+        <label>Tipe</label>
+        <select class="tipe">
+          <option value="VA">VA</option>
+          <option value="Transfer">Transfer</option>
+        </select>
+      </div>
+      <div class="col bank">
+        <label>Bank</label>
+        <input class="bank">
+      </div>
+      <div class="col norek">
+        <label>No. Rekening</label>
+        <input class="noRekening">
+      </div>
+      <div class="col atasnama">
+        <label>A/N Rekening</label>
+        <input class="atasNama">
+      </div>
+      <div class="col akun akunCol">
+        <label>Akun</label>
+      </div>
+      <div class="col pemasok pemasokCol">
+        <label>Pemasok</label>
+      </div>
+      <div class="col qty">
+        <label>Qty</label>
+        <input class="qty">
+      </div>
+      <div class="col ket">
+        <label>Keterangan Tambahan</label>
+        <input class="keterangan">
+      </div>
+      <div class="col nominal">
+        <label>Jumlah Nominal</label>
+        <input type="number" class="nominal" value="0">
+      </div>
+    </div>
+  `;
+
+  biayaContainer.appendChild(block);
+
+  buildCombo(block.querySelector(".pemasokCol"), PEMASOK_LIST, "Cari pemasok...", false);
+  buildCombo(block.querySelector(".akunCol"), AKUN_LIST, "Cari akun...", false);
+
+  block.querySelector(".btn-danger").onclick = ()=> block.remove();
+}
+
+/* ================= SUBMIT ================= */
+btnSubmit.onclick = ()=>{
+  if(submitting) return;
+
+  submitting = true;
+  btnSubmit.disabled = true;
+  btnSubmit.innerText = "Mengirim...";
+
+  const companyNameCol = document.querySelector(".companyNameCol");
+  const sumberDana = document.getElementById("sumberDana");
+
+  const data = {
+    pic: pic.value,
+    companyName: companyNameCol.querySelector(".comboSearch") ? companyNameCol.querySelector(".comboSearch").value : "",
+    sumberDana: sumberDana.value,
+    vouchers: []
+  };
+
+  document.querySelectorAll(".biaya-block").forEach(block=>{
+    const pemasokCol = block.querySelector(".pemasokCol");
+    const akunCol = block.querySelector(".akunCol");
+
+    data.vouchers.push({
+      blAwb: block.querySelector(".blAwb").value,
+      aju: block.querySelector(".aju").value,
+      tipe: block.querySelector(".tipe").value,
+      bank: block.querySelector(".bank").value,
+      noRekening: block.querySelector(".noRekening").value,
+      atasNamaRekening: block.querySelector(".atasNama").value,
+      pemasokKode: pemasokCol.querySelector(".comboValueKode").value,
+      pemasokNama: pemasokCol.querySelector(".comboSearch").value,
+      akunKode: akunCol.querySelector(".comboValueKode").value,
+      akunNama: akunCol.querySelector(".comboSearch").value,
+      qty: block.querySelector(".qty").value,
+      keterangan: block.querySelector(".keterangan").value,
+      nominal: Number(block.querySelector(".nominal").value || 0)
+    });
+  });
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify(data)
+  })
+  .then(()=>{
+    alert("BERHASIL — DATA TERINPUT");
+    location.reload();
+  })
+  .catch(()=>{
+    alert("GAGAL");
+  })
+  .finally(()=>{
+    submitting = false;
+    btnSubmit.disabled = false;
+    btnSubmit.innerText = "SUBMIT";
+  });
+};
+
+});
+</script>
+
+</body>
+</html>
