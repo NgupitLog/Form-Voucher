@@ -24,6 +24,7 @@ input,select{width:100%;padding:6px;margin-bottom:6px;font-size:13px;box-sizing:
 input:focus,select:focus{outline:2px solid #0b4ea2;border-color:#0b4ea2}
 
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.row + .row{margin-top:4px}
 .col{position:relative}
 
 .col.blawb{flex:1.6;min-width:150px}
@@ -33,7 +34,6 @@ input:focus,select:focus{outline:2px solid #0b4ea2;border-color:#0b4ea2}
 .col.norek{flex:1;min-width:110px}
 .col.akun{flex:1.4;min-width:160px}
 .col.pemasok{flex:1.6;min-width:180px}
-.col.qty{flex:.6;min-width:80px}
 .col.ket{flex:1.8;min-width:180px}
 .col.nominal{flex:1;min-width:120px}
 .col.atasnama{flex:1;min-width:130px}
@@ -116,7 +116,7 @@ input:focus,select:focus{outline:2px solid #0b4ea2;border-color:#0b4ea2}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyK9k0weSBCpAPxXV53mZ3yFD0FGd2fw4G7me4UYH6dEks6BrR4-5S2XG3YKr-v6pQF/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfFDTWjAN8NXmxA505x47ZtjxNSZW8ewsbyNSsOnFbTfXnX1JFbfNS1-aINo73ndTo9g/exec";
 
 /* ================= MASTER DATA (LAMA - fallback jika fetch ke Sheet gagal) ================= */
 const PIC_LIST_FALLBACK = ["Farah", "Beta", "Dian", "Imri", "Tias", "Febi", "Avril", "Denada", "Fadly", "Kiki", "Logistik Team", "Aulia", "Others"];
@@ -193,7 +193,7 @@ function buildCombo(col, list, placeholder, nameOnly){
 
   function render(filtered){
     listEl.innerHTML = "";
-    filtered.slice(0, 50).forEach(item=>{
+    filtered.forEach(item=>{
       const opt = document.createElement("div");
       opt.textContent = nameOnly ? item.nama : `${item.kode}; ${item.nama}`;
       opt.onclick = ()=>{
@@ -240,6 +240,9 @@ function addBiaya(){
     <div class="section-label">Detail VCR ${biayaCount}</div>
 
     <div class="row">
+      <div class="col pemasok pemasokCol">
+        <label>Pemasok</label>
+      </div>
       <div class="col blawb">
         <label>No. BL / AWB</label>
         <input class="blAwb">
@@ -259,31 +262,27 @@ function addBiaya(){
         <label>Bank</label>
         <input class="bank">
       </div>
-      <div class="col norek">
-        <label>No. Rekening</label>
-        <input class="noRekening">
-      </div>
       <div class="col atasnama">
         <label>A/N Rekening</label>
         <input class="atasNama">
       </div>
+      <div class="col norek">
+        <label>No. Rekening</label>
+        <input class="noRekening">
+      </div>
+    </div>
+
+    <div class="row">
       <div class="col akun akunCol">
         <label>Akun</label>
-      </div>
-      <div class="col pemasok pemasokCol">
-        <label>Pemasok</label>
-      </div>
-      <div class="col qty">
-        <label>Qty</label>
-        <input class="qty">
-      </div>
-      <div class="col ket">
-        <label>Keterangan Tambahan</label>
-        <input class="keterangan">
       </div>
       <div class="col nominal">
         <label>Jumlah Nominal</label>
         <input type="number" class="nominal" value="0">
+      </div>
+      <div class="col ket">
+        <label>Keterangan Tambahan</label>
+        <input class="keterangan">
       </div>
     </div>
   `;
@@ -319,19 +318,18 @@ btnSubmit.onclick = ()=>{
     const akunCol = block.querySelector(".akunCol");
 
     data.vouchers.push({
+      pemasokKode: pemasokCol.querySelector(".comboValueKode").value,
+      pemasokNama: pemasokCol.querySelector(".comboSearch").value,
       blAwb: block.querySelector(".blAwb").value,
       aju: block.querySelector(".aju").value,
       tipe: block.querySelector(".tipe").value,
       bank: block.querySelector(".bank").value,
-      noRekening: block.querySelector(".noRekening").value,
       atasNamaRekening: block.querySelector(".atasNama").value,
-      pemasokKode: pemasokCol.querySelector(".comboValueKode").value,
-      pemasokNama: pemasokCol.querySelector(".comboSearch").value,
+      noRekening: block.querySelector(".noRekening").value,
       akunKode: akunCol.querySelector(".comboValueKode").value,
       akunNama: akunCol.querySelector(".comboSearch").value,
-      qty: block.querySelector(".qty").value,
-      keterangan: block.querySelector(".keterangan").value,
-      nominal: Number(block.querySelector(".nominal").value || 0)
+      nominal: Number(block.querySelector(".nominal").value || 0),
+      keterangan: block.querySelector(".keterangan").value
     });
   });
 
