@@ -321,14 +321,14 @@ btnSubmit.onclick = ()=>{
       pemasokKode: pemasokCol.querySelector(".comboValueKode").value,
       pemasokNama: pemasokCol.querySelector(".comboSearch").value,
       blAwb: block.querySelector(".blAwb").value,
-      aju: block.querySelector(".aju").value,
-      tipe: block.querySelector(".tipe").value,
-      bank: block.querySelector(".bank").value,
+      aju: block.querySelector("input.aju").value,
+      tipe: block.querySelector("select.tipe").value,
+      bank: block.querySelector("input.bank").value,
       atasNamaRekening: block.querySelector(".atasNama").value,
       noRekening: block.querySelector(".noRekening").value,
       akunKode: akunCol.querySelector(".comboValueKode").value,
       akunNama: akunCol.querySelector(".comboSearch").value,
-      nominal: Number(block.querySelector(".nominal").value || 0),
+      nominal: Number(block.querySelector("input.nominal").value || 0),
       keterangan: block.querySelector(".keterangan").value
     });
   });
