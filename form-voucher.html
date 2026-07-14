@@ -197,7 +197,7 @@ function buildCombo(col, list, placeholder, nameOnly){
       const opt = document.createElement("div");
       opt.textContent = nameOnly ? item.nama : `${item.kode}; ${item.nama}`;
       opt.onclick = ()=>{
-        searchInput.value = nameOnly ? item.nama : `${item.kode}; ${item.nama}`;
+        searchInput.value = item.nama;
         hiddenInput.value = item.kode;
         listEl.style.display = "none";
       };
